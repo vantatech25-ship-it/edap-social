@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum PostPrivacy {
+  PUBLIC
+  FRIENDS
+  PRIVATE
+  CUSTOM
+}
+
+enum ReactionEntityType {
+  POST
+  COMMENT
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  HAHA
+  WOW
+  SAD
+  ANGRY
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  bio          String?
+  avatarUrl    String?
+  coverUrl     String?
+  isVerified   Boolean  @default(false)
+  role         UserRole @default(USER)
+  posts        Post[]
+  comments     Comment[]
+  reactions    Reaction[]
+  messagesSent Message[] @relation("SentMessages")
+  followers    Connection[] @relation("followers")
+  following    Connection[] @relation("following")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Connection {
+  followerId  String           @db.Uuid
+  followingId String           @db.Uuid
+  status      ConnectionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  follower    User @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+  @@id([followerId, followingId])
+  @@index([followerId, status], map: "idx_connections_follower_status")
+  @@index([followingId, status], map: "idx_connections_following_status")
+}
+
+model Post {
+  id        String      @id @default(uuid()) @db.Uuid
+  authorId  String      @db.Uuid
+  content   String
+  mediaUrls Json?
+  privacy   PostPrivacy @default(PUBLIC)
+  groupId   String?     @db.Uuid
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reactions Reaction[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([authorId, createdAt(sort: Desc)], map: "idx_posts_author_created")
+}
+
+model Comment {
+  id              String   @id @default(uuid()) @db.Uuid
+  postId          String   @db.Uuid
+  authorId        String   @db.Uuid
+  parentCommentId String?  @db.Uuid
+  content         String
+  createdAt       DateTime @default(now())
+  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent          Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         Comment[] @relation("CommentReplies")
+  @@index([postId, createdAt], map: "idx_comments_post_created")
+}
+
+model Reaction {
+  id           String            @id @default(uuid()) @db.Uuid
+  userId       String            @db.Uuid
+  entityType   ReactionEntityType
+  entityId     String            @db.Uuid
+  reactionType ReactionType
+  createdAt    DateTime          @default(now())
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, entityType, entityId])
+  @@index([entityType, entityId])
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.Uuid
+  threadId  String   @db.Uuid
+  senderId  String   @db.Uuid
+  content   String
+  mediaUrl  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  @@index([threadId, createdAt])
+}

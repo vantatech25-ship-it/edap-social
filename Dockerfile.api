@@ -1,0 +1,24 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package files
+COPY package*.json ./
+
+# Copy the entire workspace
+COPY . .
+
+# Install all dependencies
+RUN npm ci
+
+# Generate Prisma client if needed (assuming prisma is in api)
+RUN npm run db:generate --workspace=api --if-present
+
+# Build the API
+RUN npm run build --workspace=api
+
+# Expose NestJS port
+EXPOSE 3001
+
+# Start the API using npm workspaces
+CMD ["npm", "run", "start:prod", "--workspace=api"]

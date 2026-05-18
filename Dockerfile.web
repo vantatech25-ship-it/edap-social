@@ -1,0 +1,21 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package files
+COPY package*.json ./
+
+# Copy the entire workspace
+COPY . .
+
+# Install all dependencies (workspaces included)
+RUN npm ci
+
+# Build the web app
+RUN npm run build --workspace=web
+
+# Expose Next.js port
+EXPOSE 3000
+
+# Start the web app using npm workspaces
+CMD ["npm", "start", "--workspace=web"]
