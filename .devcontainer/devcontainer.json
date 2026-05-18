@@ -1,0 +1,38 @@
+{
+  "name": "EDAP Social Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true",
+      "moby": "true"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [3000, 3001, 5432, 6379, 9000, 9001],
+  "portsAttributes": {
+    "3000": {
+      "label": "Web Frontend",
+      "onAutoForward": "notify"
+    },
+    "3001": {
+      "label": "NestJS API",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "npm ci && cd infra && docker compose up -d && cd .. && npm run db:generate",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      },
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "Prisma.prisma",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}
