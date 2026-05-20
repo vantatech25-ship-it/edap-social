@@ -1,6 +1,79 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+"use client";
+
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useAuth } from "@/components/AuthProvider";
+import Link from "next/link";
+import PostItem from "@/components/PostItem";
 
 export default function Feed() {
+  const { accessToken, user } = useAuth();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [content, setContent] = useState("");
+  const [privacy, setPrivacy] = useState("PUBLIC");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchFeed = async (nextCursor?: string) => {
+    if (!accessToken) return;
+    try {
+      const url = new URL("http://localhost:3001/api/feed");
+      url.searchParams.append("sort", "chronological");
+      if (nextCursor) {
+        url.searchParams.append("cursor", nextCursor);
+      }
+      
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (nextCursor) {
+          setPosts((prev) => [...prev, ...data.items]);
+        } else {
+          setPosts(data.items);
+        }
+        setCursor(data.nextCursor);
+        setHasNextPage(!!data.nextCursor);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchFeed();
+    }
+  }, [accessToken]);
+
+  const handleCreatePost = async () => {
+    if (!content.trim() || !accessToken) return;
+    try {
+      const res = await fetch("http://localhost:3001/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ content, privacy }),
+      });
+      if (res.ok) {
+        const newPost = await res.json();
+        // MVP: refresh from start to see the new post correctly
+        setContent("");
+        setPrivacy("PUBLIC");
+        fetchFeed();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="flex max-w-7xl mx-auto">
       <Sidebar />
@@ -10,36 +83,52 @@ export default function Feed() {
           <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 space-y-4">
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0"></div>
-              <input 
-                type="text" 
+              <textarea 
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
                 placeholder="Share your progress or thoughts..." 
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-3 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
               />
             </div>
-            <div className="flex justify-end">
-              <button className="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-black/90">Post</button>
+            <div className="flex justify-between items-center">
+              <select 
+                value={privacy} 
+                onChange={(e) => setPrivacy(e.target.value)}
+                className="text-sm border border-slate-200 rounded-md p-2 bg-slate-50 focus:outline-none"
+              >
+                <option value="PUBLIC">Public</option>
+                <option value="FRIENDS">Connections</option>
+                <option value="PRIVATE">Private</option>
+              </select>
+              <button 
+                onClick={handleCreatePost}
+                disabled={!content.trim()}
+                className="px-6 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-black/90 disabled:opacity-50"
+              >
+                Post
+              </button>
             </div>
           </div>
 
           {/* Feed Stream */}
           <div className="space-y-4">
-            {[1, 2, 3].map((post) => (
-              <div key={post} className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0"></div>
-                  <div>
-                    <h4 className="font-semibold text-sm">Demo User {post}</h4>
-                    <span className="text-xs text-slate-500">2 hours ago</span>
-                  </div>
-                </div>
-                <p className="text-sm text-slate-700">This is a placeholder post in the ranked feed. Cursor pagination will load more below. Testing out the new original UI design.</p>
-                <div className="flex items-center gap-6 pt-3 border-t border-slate-100">
-                  <button className="text-sm text-slate-600 hover:text-black font-medium">Like</button>
-                  <button className="text-sm text-slate-600 hover:text-black font-medium">Comment</button>
-                  <button className="text-sm text-slate-600 hover:text-black font-medium">Share</button>
-                </div>
-              </div>
+            {loading && !posts.length && <p className="text-center text-slate-500 py-8">Loading feed...</p>}
+            {!loading && !posts.length && <p className="text-center text-slate-500 py-8">No posts to show.</p>}
+            
+            {posts.map((post) => (
+              <PostItem key={post.id} post={post} />
             ))}
+            
+            {hasNextPage && (
+              <div className="flex justify-center pt-4">
+                <button 
+                  onClick={() => cursor && fetchFeed(cursor)}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
+                >
+                  Load More
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>

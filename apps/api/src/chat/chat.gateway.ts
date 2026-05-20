@@ -19,7 +19,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   handleConnection(client: Socket) {
-    const token = client.handshake.auth.token;
+    const token = client.handshake.auth.token as string | undefined;
     if (!token) {
       // Disconnect if no token
       client.disconnect();

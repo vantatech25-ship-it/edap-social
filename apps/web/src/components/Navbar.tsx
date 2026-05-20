@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NotificationsWidget from './NotificationsWidget';
 
 export default function Navbar() {
   return (
@@ -16,6 +17,9 @@ export default function Navbar() {
               placeholder="Search..."
               className="h-9 md:w-[300px] lg:w-[400px] rounded-md border border-slate-300 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
             />
+          </div>
+          <div className="flex items-center space-x-2 mr-2">
+            <NotificationsWidget />
           </div>
           <nav className="flex items-center space-x-4">
             <Link href="/login" className="text-sm font-medium hover:underline">

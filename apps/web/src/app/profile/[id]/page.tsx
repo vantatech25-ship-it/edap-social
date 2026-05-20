@@ -1,6 +1,83 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
+"use client";
+
+import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Profile({ params }: { params: { id: string } }) {
+  const { id } = params;
+  const { accessToken, user: currentUser } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`http://localhost:3001/api/users/${id}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data);
+        }
+
+        if (currentUser && currentUser.id !== id) {
+          const followRes = await fetch(`http://localhost:3001/api/users/${currentUser.id}/connections?type=following`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          if (followRes.ok) {
+            const followData = await followRes.json();
+            const followingIds = followData.connections.map((c: any) => c.id);
+            if (followingIds.includes(id)) {
+              setIsFollowing(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (accessToken) {
+      fetchProfile();
+    } else {
+      setLoading(false);
+    }
+  }, [id, accessToken, currentUser]);
+
+  const toggleFollow = async () => {
+    if (!accessToken || !currentUser) return;
+    try {
+      if (isFollowing) {
+        await fetch(`http://localhost:3001/api/users/${id}/follow`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setIsFollowing(false);
+      } else {
+        await fetch(`http://localhost:3001/api/users/${id}/follow`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center mt-20">Loading...</div>;
+  }
+
   return (
     <div className="flex max-w-7xl mx-auto">
       <Sidebar />
@@ -11,10 +88,19 @@ export default function Profile({ params }: { params: { id: string } }) {
             <div className="w-32 h-32 rounded-full border-4 border-white bg-slate-300"></div>
             <div className="mb-4 flex-1 flex justify-between items-end">
               <div>
-                <h1 className="text-2xl font-bold truncate">User {params.id}</h1>
-                <p className="text-slate-500">@user_{params.id}</p>
+                <h1 className="text-2xl font-bold truncate">
+                  {profile ? `${profile.firstName} ${profile.lastName}` : `User ${id}`}
+                </h1>
+                <p className="text-slate-500">@{profile ? profile.email.split('@')[0] : `user_${id}`}</p>
               </div>
-              <button className="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-black/90">Follow</button>
+              {currentUser && currentUser.id !== id && (
+                <button 
+                  onClick={toggleFollow}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${isFollowing ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' : 'bg-black text-white hover:bg-black/90'}`}
+                >
+                  {isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+              )}
             </div>
           </div>
           
