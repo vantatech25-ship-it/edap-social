@@ -44,12 +44,15 @@ export default function AthleticFlowBackground() {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+
+          {/* Ambient Grid Pattern */}
+          <pattern id="ambient-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
+          </pattern>
         </defs>
 
         {/* Ambient Grid for performance tracking */}
-        <grid width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
-        </grid>
+        <rect width="100%" height="100%" fill="url(#ambient-grid)" />
 
         {/* Dynamic track / heartbeat lines flow */}
         <path

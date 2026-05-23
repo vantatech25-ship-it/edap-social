@@ -16,7 +16,8 @@ export class AuthRateLimiterGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<import('express').Request>();
-    const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown';
+    const ipRaw = request.ip || request.headers['x-forwarded-for'] || 'unknown';
+    const ip = Array.isArray(ipRaw) ? ipRaw[0] : ipRaw;
     const now = Date.now();
 
     let timestamps = this.ipCache.get(ip) || [];

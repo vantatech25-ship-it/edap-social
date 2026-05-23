@@ -27,13 +27,13 @@ export class UserController {
   ) {}
 
   @Get('me')
-  async getProfile(@Req() req: Request & { user?: { id: string } }) {
+  async getProfile(@Req() req: Request & { user: { id: string } }) {
     return this.userService.findById(req.user.id);
   }
 
   @Put('me')
   async updateProfile(
-    @Req() req: Request & { user?: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Body() body: Record<string, unknown>,
   ) {
     return this.userService.updateProfile(req.user.id, body);
@@ -41,7 +41,7 @@ export class UserController {
 
   @Get(':id')
   async getUser(
-    @Req() req: Request & { user?: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Param('id') id: string,
   ) {
     const isBlocked = await this.connectionsService.isBlocked(req.user.id, id);
@@ -55,7 +55,7 @@ export class UserController {
 
   @Post(':id/follow')
   async follow(
-    @Req() req: Request & { user?: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Param('id') id: string,
   ) {
     return this.connectionsService.follow(req.user.id, id);
@@ -63,7 +63,7 @@ export class UserController {
 
   @Delete(':id/follow')
   async unfollow(
-    @Req() req: Request & { user?: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Param('id') id: string,
   ) {
     return this.connectionsService.unfollow(req.user.id, id);
@@ -72,7 +72,7 @@ export class UserController {
   @Post(':id/block')
   @HttpCode(HttpStatus.OK)
   async block(
-    @Req() req: Request & { user?: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Param('id') id: string,
   ) {
     return this.connectionsService.block(req.user.id, id);
