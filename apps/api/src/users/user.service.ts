@@ -24,4 +24,54 @@ export class UserService {
       data,
     });
   }
+
+  async searchUsers(query: string) {
+    return this.prisma.user.findMany({
+      where: {
+        OR: [
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+      },
+      take: 10,
+    });
+  }
+
+  async getBirthdays(userId: string) {
+    // Basic MVP logic: get connections and filter by those who have dateOfBirth.
+    // A robust system would query by month/day.
+    const connections = await this.prisma.connection.findMany({
+      where: {
+        OR: [
+          { followerId: userId, status: 'ACCEPTED' },
+          { followingId: userId, status: 'ACCEPTED' },
+        ],
+      },
+    });
+
+    const connectionIds = connections.map((c) =>
+      c.followerId === userId ? c.followingId : c.followerId,
+    );
+
+    return this.prisma.user.findMany({
+      where: {
+        id: { in: connectionIds },
+        dateOfBirth: { not: null },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        dateOfBirth: true,
+      },
+    });
+  }
 }

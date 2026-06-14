@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import AthleticFlowBackground from "@/components/AthleticFlowBackground";
 import { AuthProvider } from "@/components/AuthProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,13 +20,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col relative`}>
+      <body className={`${inter.className} antialiased bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col relative transition-colors duration-200`}>
         <AthleticFlowBackground />
         <div className="flex-1 flex flex-col relative z-10">
-          <AuthProvider>
-            <Navbar />
-            {children}
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <Navbar />
+              {children}
+            </AuthProvider>
+          </ThemeProvider>
         </div>
       </body>
     </html>

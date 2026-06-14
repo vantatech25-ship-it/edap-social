@@ -8,7 +8,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PostsModule } from './posts/posts.module';
 import { FeedModule } from './feed/feed.module';
-import { ChatGateway } from './chat/chat.gateway';
+import { ChatModule } from './chat/chat.module';
+import { ReactionsModule } from './reactions/reactions.module';
+import { GroupsModule } from './groups/groups.module';
+import { StoriesModule } from './stories/stories.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -19,8 +23,13 @@ import { ChatGateway } from './chat/chat.gateway';
     PostsModule,
     FeedModule,
     NotificationsModule,
+    ReactionsModule,
+    ChatModule,
+    GroupsModule,
+    StoriesModule,
+    UploadModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ChatGateway],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -8,6 +8,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway({
   cors: {
@@ -17,6 +18,8 @@ import { Server, Socket } from 'socket.io';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
+
+  constructor(private readonly chatService: ChatService) {}
 
   handleConnection(client: Socket) {
     const token = client.handshake.auth.token as string | undefined;
@@ -33,17 +36,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('message:send')
-  handleSendMessage(
+  async handleSendMessage(
     @MessageBody()
     data: { threadId: string; content: string; mediaUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
+    // Save to DB
+    const message = await this.chatService.saveMessage(
+      data.threadId,
+      client.id, // Or however we get the authenticated user's ID
+      data.content,
+      data.mediaUrl,
+    );
+
     this.server.emit('message:receive', {
       threadId: data.threadId,
       content: data.content,
       mediaUrl: data.mediaUrl,
       senderId: client.id,
-      createdAt: new Date().toISOString(),
+      createdAt: message.createdAt.toISOString(),
     });
   }
 

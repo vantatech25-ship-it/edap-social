@@ -11,6 +11,8 @@ export default function Profile({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<any>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [followers, setFollowers] = useState<any[]>([]);
+  const [following, setFollowing] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -25,19 +27,37 @@ export default function Profile({ params }: { params: { id: string } }) {
           setProfile(data);
         }
 
+        // Fetch current user's following to check if they follow this profile
         if (currentUser && currentUser.id !== id) {
-          const followRes = await fetch(`http://localhost:3001/api/users/${currentUser.id}/connections?type=following`, {
+          const followRes = await fetch(`http://localhost:3001/api/connections/following/${currentUser.id}`, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
           });
           if (followRes.ok) {
             const followData = await followRes.json();
-            const followingIds = followData.connections.map((c: any) => c.id);
+            const followingIds = followData.connections?.map((c: any) => c.id) || [];
             if (followingIds.includes(id)) {
               setIsFollowing(true);
             }
           }
+        }
+
+        // Fetch this profile's followers and following counts
+        const profileFollowersRes = await fetch(`http://localhost:3001/api/connections/followers/${id}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (profileFollowersRes.ok) {
+            const fData = await profileFollowersRes.json();
+            setFollowers(fData.connections || []);
+        }
+
+        const profileFollowingRes = await fetch(`http://localhost:3001/api/connections/following/${id}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (profileFollowingRes.ok) {
+            const fData = await profileFollowingRes.json();
+            setFollowing(fData.connections || []);
         }
       } catch (err) {
         console.error(err);
@@ -57,17 +77,19 @@ export default function Profile({ params }: { params: { id: string } }) {
     if (!accessToken || !currentUser) return;
     try {
       if (isFollowing) {
-        await fetch(`http://localhost:3001/api/users/${id}/follow`, {
+        await fetch(`http://localhost:3001/api/connections/unfollow/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setIsFollowing(false);
+        setFollowers((prev) => prev.filter((u) => u.id !== currentUser.id));
       } else {
-        await fetch(`http://localhost:3001/api/users/${id}/follow`, {
+        await fetch(`http://localhost:3001/api/connections/follow/${id}`, {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setIsFollowing(true);
+        setFollowers((prev) => [...prev, currentUser]);
       }
     } catch (err) {
       console.error(err);
@@ -91,7 +113,11 @@ export default function Profile({ params }: { params: { id: string } }) {
                 <h1 className="text-2xl font-bold truncate">
                   {profile ? `${profile.firstName} ${profile.lastName}` : `User ${id}`}
                 </h1>
-                <p className="text-slate-500">@{profile ? profile.email.split('@')[0] : `user_${id}`}</p>
+                <p className="text-slate-500 mb-2">@{profile ? profile.email.split('@')[0] : `user_${id}`}</p>
+                <div className="flex gap-4 text-sm">
+                  <span className="font-semibold text-slate-900">{followers.length} <span className="font-normal text-slate-500">Followers</span></span>
+                  <span className="font-semibold text-slate-900">{following.length} <span className="font-normal text-slate-500">Following</span></span>
+                </div>
               </div>
               {currentUser && currentUser.id !== id && (
                 <button 

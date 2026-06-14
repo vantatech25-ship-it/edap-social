@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
-import { ConnectionsService } from './connections.service';
-import { ConnectionsController } from './connections.controller';
+import { ReactionsService } from './reactions.service';
+import { ReactionsController } from './reactions.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [PrismaModule, NotificationsModule, JwtModule.register({})],
-  controllers: [ConnectionsController],
-  providers: [ConnectionsService],
-  exports: [ConnectionsService],
+  controllers: [ReactionsController],
+  providers: [ReactionsService],
+  exports: [ReactionsService],
 })
-export class ConnectionsModule {}
+export class ReactionsModule {}

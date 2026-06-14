@@ -39,6 +39,17 @@ export class UserController {
     return this.userService.updateProfile(req.user.id, body);
   }
 
+  @Get('search')
+  async searchUsers(@Query('q') query: string) {
+    if (!query) return [];
+    return this.userService.searchUsers(query);
+  }
+
+  @Get('birthdays')
+  async getBirthdays(@Req() req: Request & { user: { id: string } }) {
+    return this.userService.getBirthdays(req.user.id);
+  }
+
   @Get(':id')
   async getUser(
     @Req() req: Request & { user: { id: string } },

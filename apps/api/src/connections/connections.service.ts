@@ -67,12 +67,12 @@ export class ConnectionsService {
       }
     }
 
-    // Create follow relationship (ACCEPTED for simple follow model MVP)
+    // Create follow relationship (PENDING for friend request model)
     const connection = await this.prisma.connection.create({
       data: {
         followerId,
         followingId,
-        status: ConnectionStatus.ACCEPTED,
+        status: ConnectionStatus.PENDING,
       },
     });
 
@@ -260,5 +260,52 @@ export class ConnectionsService {
       },
     });
     return !!relation;
+  }
+
+  async getPendingRequests(userId: string) {
+    return this.prisma.connection.findMany({
+      where: {
+        followingId: userId,
+        status: ConnectionStatus.PENDING,
+      },
+      include: {
+        follower: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async acceptRequest(followerId: string, followingId: string) {
+    const connection = await this.prisma.connection.findUnique({
+      where: { followerId_followingId: { followerId, followingId } },
+    });
+    if (!connection || connection.status !== ConnectionStatus.PENDING) {
+      throw new NotFoundException('Pending request not found');
+    }
+
+    return this.prisma.connection.update({
+      where: { followerId_followingId: { followerId, followingId } },
+      data: { status: ConnectionStatus.ACCEPTED },
+    });
+  }
+
+  async rejectRequest(followerId: string, followingId: string) {
+    const connection = await this.prisma.connection.findUnique({
+      where: { followerId_followingId: { followerId, followingId } },
+    });
+    if (!connection || connection.status !== ConnectionStatus.PENDING) {
+      throw new NotFoundException('Pending request not found');
+    }
+
+    return this.prisma.connection.delete({
+      where: { followerId_followingId: { followerId, followingId } },
+    });
   }
 }

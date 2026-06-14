@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  authLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,9 +25,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
 
-  // On mount, try to refresh
+  // On mount, try to refresh (or load mock token if offline)
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -40,7 +42,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAccessToken(data.accessToken);
         }
       } catch (e) {
-        console.error("Failed to refresh token", e);
+        console.error("Failed to refresh token, checking offline fallback", e);
+        if (typeof window !== "undefined") {
+          const mockUser = localStorage.getItem("mock_user");
+          const mockToken = localStorage.getItem("mock_token");
+          if (mockUser && mockToken) {
+            setUser(JSON.parse(mockUser));
+            setAccessToken(mockToken);
+          }
+        }
+      } finally {
+        setAuthLoading(false);
       }
     };
     initAuth();
@@ -60,6 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Logout failed", e);
     } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("mock_user");
+        localStorage.removeItem("mock_token");
+      }
       setAccessToken(null);
       setUser(null);
       router.push("/login");
@@ -74,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         isAuthenticated: !!user,
+        authLoading,
       }}
     >
       {children}
@@ -87,4 +104,4 @@ export const useAuth = () => {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
+}

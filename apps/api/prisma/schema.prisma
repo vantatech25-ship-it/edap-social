@@ -61,14 +61,17 @@ model User {
   bio          String?
   avatarUrl    String?
   coverUrl     String?
+  dateOfBirth  DateTime?
   isVerified   Boolean  @default(false)
   role         UserRole @default(USER)
   posts        Post[]
+  stories      Story[]
   comments     Comment[]
   reactions    Reaction[]
   messagesSent Message[] @relation("SentMessages")
   followers    Connection[] @relation("followers")
   following    Connection[] @relation("following")
+  groupMemberships GroupMember[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   notifications Notification[] @relation("UserNotifications")
@@ -94,11 +97,13 @@ model Post {
   mediaUrls Json?
   privacy   PostPrivacy @default(PUBLIC)
   groupId   String?     @db.Uuid
+  group     Group?      @relation(fields: [groupId], references: [id], onDelete: Cascade)
   author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  Comment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([authorId, createdAt(sort: Desc)], map: "idx_posts_author_created")
+  @@index([groupId, createdAt(sort: Desc)], map: "idx_posts_group_created")
 }
 
 model Comment {
@@ -155,4 +160,51 @@ model Notification {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, isRead, createdAt(sort: Desc)])
+}
+
+enum GroupPrivacy {
+  PUBLIC
+  PRIVATE
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Group {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  coverUrl    String?
+  privacy     GroupPrivacy  @default(PUBLIC)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  members     GroupMember[]
+  posts       Post[]
+}
+
+model GroupMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  groupId   String    @db.Uuid
+  userId    String    @db.Uuid
+  role      GroupRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model Story {
+  id        String   @id @default(uuid()) @db.Uuid
+  authorId  String   @db.Uuid
+  mediaUrl  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId, expiresAt])
 }

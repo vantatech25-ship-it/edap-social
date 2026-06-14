@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Delete,
+  Put,
   UseGuards,
   Req,
   Query,
@@ -43,6 +44,15 @@ export class PostsController {
     @Param('id') id: string,
   ) {
     return this.postsService.remove(req.user!.id, id);
+  }
+
+  @Put(':id')
+  async update(
+    @Req() req: Request & { user?: { id: string } },
+    @Param('id') id: string,
+    @Body() updateData: Partial<CreatePostDto>,
+  ) {
+    return this.postsService.update(req.user!.id, id, updateData);
   }
 
   @Post(':id/comments')

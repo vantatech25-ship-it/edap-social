@@ -112,6 +112,23 @@ export class PostsService {
     return this.prisma.post.delete({ where: { id: postId } });
   }
 
+  async update(userId: string, postId: string, data: Partial<CreatePostDto>) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('You can only edit your own posts');
+    }
+    return this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        content: data.content,
+        privacy: data.privacy,
+      },
+    });
+  }
+
   async createComment(userId: string, postId: string, data: CreateCommentDto) {
     const post = await this.findOne(userId, postId); // Enforces post privacy and block logic
 
